@@ -1,204 +1,885 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>NavSri — Campus Navigator</title>
-<meta charset="utf-8">
-<meta name="description" content="NavSri: Explore Srinivas Group of Colleges with an interactive 360° virtual campus tour. Search and navigate to any location.">
-<meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui" />
-<style> @-ms-viewport { width: device-width; } </style>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="vendor/reset.min.css">
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <title>NavSri — Srinivas Institute of Technology Campus Navigator</title>
+  <meta name="description" content="NavSri: Explore Srinivas Institute of Technology campus with interactive 360° virtual tours, QR scanning, and smart BFS pathfinding.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cinzel:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      /* Official SIT College Theme Colors */
+      --sit-navy-dark:   #0f1738;
+      --sit-navy:        #162354;
+      --sit-navy-light:  #213274;
+      --sit-gold:        #f59e0b;
+      --sit-gold-hover:  #d97706;
+      --sit-gold-light:  #fef3c7;
+      --sit-bg-page:     #f4f6fb;
+      --sit-card-bg:     #ffffff;
+      --sit-border:      #e2e8f0;
+      --sit-text-dark:   #0f172a;
+      --sit-text-body:   #334155;
+      --sit-text-muted:  #64748b;
+      --sit-shadow:      0 8px 30px rgba(22, 35, 84, 0.08);
+      --sit-shadow-lg:   0 14px 40px rgba(22, 35, 84, 0.12);
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--sit-bg-page);
+      color: var(--sit-text-body);
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* ── Top Utility Strip ── */
+    .top-utility-bar {
+      background: var(--sit-navy-dark);
+      color: #e2e8f0;
+      font-size: 12px;
+      padding: 7px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .top-utility-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .utility-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .utility-item .icon {
+      color: var(--sit-gold);
+    }
+
+    .top-utility-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 11.5px;
+    }
+
+    .utility-badge {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--sit-gold);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    /* ── Main College Header ── */
+    .main-header {
+      background: #ffffff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      border-bottom: 3.5px solid var(--sit-gold);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+    }
+
+    /* SIT Official Emblem Graphic */
+    .brand-emblem {
+      width: 48px;
+      height: 48px;
+      background: var(--sit-navy);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(22, 35, 84, 0.2);
+      border: 2px solid var(--sit-gold);
+      flex-shrink: 0;
+    }
+
+    .brand-emblem svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .college-name {
+      font-family: 'Cinzel', serif;
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--sit-navy);
+      letter-spacing: 0.5px;
+      line-height: 1.15;
+    }
+
+    .college-sub {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--sit-gold-hover);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .header-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1px solid var(--sit-border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--sit-navy);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 6px #10b981;
+    }
+
+    /* ── Hero Banner Section ── */
+    .hero-banner {
+      position: relative;
+      background:
+        linear-gradient(135deg, rgba(15, 23, 56, 0.88) 0%, rgba(22, 35, 84, 0.78) 50%, rgba(15, 23, 56, 0.90) 100%),
+        url('tiles/5-engineering-main-entrance-1/preview.jpg') center/cover no-repeat;
+      color: #ffffff;
+      padding: 56px 24px 64px;
+      text-align: center;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--sit-gold), #fcd34d, var(--sit-gold));
+    }
+
+    .hero-content {
+      max-width: 780px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Signature SIT Vertical Yellow Bar Accent */
+    .section-accent-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--sit-gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .gold-bar {
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: var(--sit-gold);
+      border-radius: 2px;
+    }
+
+    .hero-banner h1 {
+      font-size: clamp(30px, 5.5vw, 46px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+
+    .hero-banner p {
+      font-size: clamp(14px, 2.2vw, 16.5px);
+      color: #cbd5e1;
+      line-height: 1.6;
+      max-width: 640px;
+      margin: 0 auto 30px;
+      font-weight: 400;
+    }
+
+    /* ── Key Metrics Bar ── */
+    .metrics-bar {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
+      padding: 10px 28px;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .metric-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--sit-gold);
+      line-height: 1;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ── Main Container ── */
+    .main-container {
+      max-width: 1100px;
+      margin: -32px auto 48px;
+      padding: 0 20px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* ── Action Grid (Light Theme Cards) ── */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 22px;
+      margin-bottom: 24px;
+    }
+
+    .action-card {
+      background: var(--sit-card-bg);
+      border: 1px solid var(--sit-border);
+      border-radius: 14px;
+      padding: 28px 24px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--sit-shadow);
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--sit-border);
+      transition: background 0.22s ease;
+    }
+
+    .action-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--sit-shadow-lg);
+      border-color: #cbd5e1;
+    }
+
+    .action-card.primary::before {
+      background: var(--sit-navy);
+    }
+    .action-card.primary:hover::before {
+      background: var(--sit-gold);
+    }
+
+    .action-card.qr::before {
+      background: #059669;
+    }
+    .action-card.qr:hover::before {
+      background: var(--sit-gold);
+    }
+
+    .action-card.explore::before {
+      background: var(--sit-gold);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .card-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      background: #f1f5f9;
+      color: var(--sit-navy);
+      border: 1px solid var(--sit-border);
+      transition: transform 0.2s;
+    }
+
+    .action-card:hover .card-icon-wrap {
+      transform: scale(1.05);
+    }
+
+    .primary .card-icon-wrap {
+      background: #eef2ff;
+      border-color: #c7d2fe;
+    }
+
+    .qr .card-icon-wrap {
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+    }
+
+    .explore .card-icon-wrap {
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    .card-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .primary .card-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    .qr .card-badge {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .explore .card-badge {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .card-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--sit-navy);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--sit-text-body);
+      line-height: 1.55;
+      margin-bottom: 22px;
+    }
+
+    .card-action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .primary .card-action-btn {
+      background: var(--sit-navy);
+      color: #ffffff;
+      border: 1px solid var(--sit-navy);
+    }
+    .primary:hover .card-action-btn {
+      background: var(--sit-gold);
+      border-color: var(--sit-gold);
+      color: var(--sit-navy-dark);
+    }
+
+    .qr .card-action-btn {
+      background: #047857;
+      color: #ffffff;
+      border: 1px solid #047857;
+    }
+    .qr:hover .card-action-btn {
+      background: #059669;
+      border-color: #059669;
+    }
+
+    .explore .card-action-btn {
+      background: #ffffff;
+      color: var(--sit-navy);
+      border: 1.5px solid var(--sit-navy);
+    }
+    .explore:hover .card-action-btn {
+      background: #f8fafc;
+      border-color: var(--sit-gold);
+      color: var(--sit-gold-hover);
+    }
+
+    /* ── QR Codes Quick Banner ── */
+    .qr-placard-banner {
+      background: #ffffff;
+      border: 1px solid var(--sit-border);
+      border-left: 5px solid var(--sit-gold);
+      border-radius: 12px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: var(--sit-shadow);
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .qr-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .qr-banner-icon {
+      font-size: 28px;
+      background: #fef3c7;
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #fde68a;
+      flex-shrink: 0;
+    }
+
+    .qr-banner-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--sit-navy);
+      margin-bottom: 2px;
+    }
+
+    .qr-banner-desc {
+      font-size: 12.5px;
+      color: var(--sit-text-muted);
+    }
+
+    .qr-banner-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid var(--sit-navy);
+      color: var(--sit-navy);
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .qr-banner-btn:hover {
+      background: var(--sit-navy);
+      color: #ffffff;
+    }
+
+    /* ── Locations Preview Section ── */
+    .locations-preview-box {
+      background: #ffffff;
+      border: 1px solid var(--sit-border);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: var(--sit-shadow);
+      margin-top: 24px;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--sit-border);
+    }
+
+    .preview-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--sit-navy);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .preview-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .loc-chip {
+      background: #f1f5f9;
+      color: var(--sit-text-body);
+      border: 1px solid #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .loc-chip:hover {
+      background: var(--sit-navy);
+      color: #ffffff;
+      border-color: var(--sit-navy);
+    }
+
+    .loc-chip.highlight {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+      font-weight: 600;
+    }
+
+    /* ── College Footer ── */
+    .site-footer {
+      background: var(--sit-navy-dark);
+      color: #cbd5e1;
+      border-top: 3.5px solid var(--sit-gold);
+      padding: 36px 20px 24px;
+      margin-top: 40px;
+      font-size: 13px;
+    }
+
+    .footer-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .footer-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .footer-title {
+      font-family: 'Cinzel', serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .footer-subtitle {
+      font-size: 12px;
+      color: var(--sit-gold);
+    }
+
+    .footer-address {
+      font-size: 12px;
+      color: #94a3b8;
+      max-width: 380px;
+    }
+
+    .footer-bottom {
+      max-width: 1100px;
+      margin: 18px auto 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 11.5px;
+      color: #64748b;
+    }
+
+    @media (max-width: 768px) {
+      .top-utility-bar { justify-content: center; text-align: center; }
+      .main-header { flex-direction: column; gap: 12px; text-align: center; }
+      .brand-wrap { flex-direction: column; }
+      .header-tag { display: none; }
+      .footer-content { flex-direction: column; text-align: center; }
+      .footer-bottom { justify-content: center; text-align: center; }
+      .qr-placard-banner { flex-direction: column; text-align: center; }
+      .qr-banner-left { flex-direction: column; }
+      .qr-banner-btn { width: 100%; justify-content: center; }
+    }
+  </style>
 </head>
-<body class="multiple-scenes view-control-buttons">
 
-<div id="pano"></div>
+<body>
 
-<!-- Navigation Search Panel -->
-<div id="navPanel">
-  <div id="navSearchWrapper">
-    <span id="navSearchIcon">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    </span>
-    <input type="text" id="navSearchInput" placeholder="Search a place to navigate…" autocomplete="off" spellcheck="false">
-    <button id="navClearBtn" title="Clear">✕</button>
-  </div>
-  <ul id="navSuggestions"></ul>
-</div>
-
-<!-- Navigation Path Status Bar -->
-<div id="navStatus" class="hidden">
-  <div id="navStatusInner">
-    <span id="navStatusIcon">🧭</span>
-    <div id="navStatusText">
-      <span id="navStatusTitle">Navigating to <strong id="navDestName"></strong></span>
-      <span id="navStatusStep"></span>
+  <!-- Top Admissions & College Information Strip -->
+  <div class="top-utility-bar">
+    <div class="top-utility-left">
+      <div class="utility-item">
+        <span class="icon">📍</span> Valachil, Mangalore – 574143
+      </div>
+      <div class="utility-item">
+        <span class="icon">📞</span> Admissions: +91 7026436197, +91 6366410494
+      </div>
+      <div class="utility-item">
+        <span class="icon">✉️</span> admission@srinivasgroup.com
+      </div>
     </div>
-    <button id="navCancelBtn" title="Cancel navigation">✕</button>
+    <div class="top-utility-right">
+      <span class="utility-badge">NAAC Accredited</span>
+      <span class="utility-badge">Approved by AICTE</span>
+      <span>Affiliated to VTU</span>
+    </div>
   </div>
-  <!-- Step indicators -->
-  <div id="navStepBar">
-    <div id="navStepDots"></div>
-    <div id="navStepLabel"></div>
-  </div>
-</div>
 
-<div id="sceneList">
-  <ul class="scenes">
-    
-      <a href="javascript:void(0)" class="scene" data-id="0-entrance-gate-1">
-        <li class="text">entrance gate 1</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="1-entrance-gate-2">
-        <li class="text">Entrance gate 2</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="2-garden-view-">
-        <li class="text">Garden view </li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="3-temple">
-        <li class="text">Temple</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="4-nursing-entrance-1">
-        <li class="text">Nursing entrance 1</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="5-engineering-main-entrance-1">
-        <li class="text">Engineering Main entrance 1</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="6-engineering-main-stage-">
-        <li class="text">Engineering Main Stage </li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="7-office_entrance-">
-        <li class="text">Office_Entrance </li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="8-principal_cabin">
-        <li class="text">Principal_Cabin</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="9-office_inside">
-        <li class="text">Office_Inside</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="10-office2">
-        <li class="text">Office2</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="11-first_floor_steps">
-        <li class="text">First_Floor_steps</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="12-first_floor">
-        <li class="text">First_Floor</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="13-physics_lab">
-        <li class="text">Physics_lab</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="14-cse_lab">
-        <li class="text">CSE_Lab</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="15-2nd_floor">
-        <li class="text">2nd_Floor</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="16-ethno-right">
-        <li class="text">Ethno Right</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="17-ethno-left">
-        <li class="text">Ethno Left</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="18-3rd_floor">
-        <li class="text">3rd_Floor</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="19-nexus">
-        <li class="text">Nexus</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="20-aids_out">
-        <li class="text">AIDS_OUT</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="21-aids_in">
-        <li class="text">AIDS_IN</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="22-4th_floor">
-        <li class="text">4th_Floor</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="23-wrkube">
-        <li class="text">WRKube</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="24-csbs_out">
-        <li class="text">CSBS_OUT</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="25-auditorium">
-        <li class="text">AUDITORIUM</li>
-      </a>
-    
-  </ul>
-</div>
+  <!-- Main College Header with Official Branding -->
+  <header class="main-header">
+    <a href="index.html" class="brand-wrap">
+      <div class="brand-emblem" title="Srinivas Emblem">
+        <!-- Official Crest Emblem SVG -->
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="50,6 92,26 92,74 50,94 8,74 8,26" stroke="#f59e0b" stroke-width="5" fill="#162354"/>
+          <path d="M68 34 C64 27, 44 26, 36 34 C30 40, 32 48, 42 51 L56 55 C66 58, 70 65, 64 73 C56 83, 34 82, 28 73" stroke="#f59e0b" stroke-width="7" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="college-name">SRINIVAS INSTITUTE OF TECHNOLOGY</div>
+        <div class="college-sub">Samagra Gnana · Srinivas Group of Colleges</div>
+      </div>
+    </a>
+    <div class="header-tag">
+      <span class="status-dot"></span>
+      <span>Campus Navigator Active · 26 Locations</span>
+    </div>
+  </header>
 
-<div id="titleBar">
-  <h1 class="sceneName"></h1>
-</div>
+  <!-- Hero Banner with Campus Image & SIT Yellow Accent Tag -->
+  <section class="hero-banner">
+    <div class="hero-content">
+      <div class="section-accent-tag">
+        <span class="gold-bar"></span> 360° Virtual Campus Navigator
+      </div>
+      <h1>Explore Srinivas Campus &amp; Smart Pathfinding</h1>
+      <p>Immerse yourself in high-resolution 360° panoramic views across all campus blocks, or compute the fastest turn-by-turn route to any classroom, laboratory, or office with live visual directional cues.</p>
 
-<a href="javascript:void(0)" id="autorotateToggle">
-  <img class="icon off" src="img/play.png">
-  <img class="icon on" src="img/pause.png">
-</a>
+      <!-- Key Metrics Row -->
+      <div class="metrics-bar">
+        <div class="metric-item">
+          <div class="metric-value">26</div>
+          <div class="metric-label">Landmarks</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item">
+          <div class="metric-value">360°</div>
+          <div class="metric-label">Photorealistic Panos</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item">
+          <div class="metric-value">&lt;1 ms</div>
+          <div class="metric-label">BFS Route Calculation</div>
+        </div>
+        <div class="metric-divider"></div>
+        <div class="metric-item">
+          <div class="metric-value">QR</div>
+          <div class="metric-label">Location Placards</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<a href="javascript:void(0)" id="fullscreenToggle">
-  <img class="icon off" src="img/fullscreen.png">
-  <img class="icon on" src="img/windowed.png">
-</a>
+  <!-- Main Container -->
+  <main class="main-container">
 
-<a href="javascript:void(0)" id="sceneListToggle">
-  <img class="icon off" src="img/expand.png">
-  <img class="icon on" src="img/collapse.png">
-</a>
+    <!-- Action Cards Grid -->
+    <div class="action-grid">
 
-<a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
-  <img class="icon" src="img/up.png">
-</a>
-<a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
-  <img class="icon" src="img/down.png">
-</a>
-<a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
-  <img class="icon" src="img/left.png">
-</a>
-<a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
-  <img class="icon" src="img/right.png">
-</a>
-<a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
-  <img class="icon" src="img/plus.png">
-</a>
-<a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
-  <img class="icon" src="img/minus.png">
-</a>
+      <!-- Card 1: Guided Campus Navigation -->
+      <a class="action-card primary" href="tour.html?mode=navigate" id="btnNavigate">
+        <div>
+          <div class="card-top">
+            <div class="card-icon-wrap">🗺️</div>
+            <span class="card-badge">Turn-by-Turn</span>
+          </div>
+          <div class="card-title">Campus Navigation</div>
+          <div class="card-desc">Select your current location and desired destination. Computes the shortest physical path with glowing directional arrows guiding every step.</div>
+        </div>
+        <div class="card-action-btn">
+          Start Navigation &rarr;
+        </div>
+      </a>
 
-<script src="vendor/screenfull.min.js" ></script>
-<script src="vendor/bowser.min.js" ></script>
-<script src="vendor/marzipano.js" ></script>
+      <!-- Card 2: Scan QR Placard -->
+      <a class="action-card qr" href="tour.html?mode=qr" id="btnQR">
+        <div>
+          <div class="card-top">
+            <div class="card-icon-wrap">📱</div>
+            <span class="card-badge">Instant Location</span>
+          </div>
+          <div class="card-title">Scan QR Placard</div>
+          <div class="card-desc">Scan any QR placard posted near campus doors, stairwells, or entrances with your mobile camera to automatically set your current starting point.</div>
+        </div>
+        <div class="card-action-btn">
+          Open QR Scanner &rarr;
+        </div>
+      </a>
 
-<script src="data.js"></script>
-<script src="index.js"></script>
+      <!-- Card 3: Free 360 Exploration -->
+      <a class="action-card explore" href="tour.html?mode=explore" id="btnExplore">
+        <div>
+          <div class="card-top">
+            <div class="card-icon-wrap">🌐</div>
+            <span class="card-badge">Interactive</span>
+          </div>
+          <div class="card-title">Explore 360° Freely</div>
+          <div class="card-desc">Freely tour the entire campus without route constraints. Look around in full spherical 360°, inspect hotspots, and browse the interactive scene list.</div>
+        </div>
+        <div class="card-action-btn">
+          Enter 360° Tour &rarr;
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Printable QR Codes Banner -->
+    <div class="qr-placard-banner">
+      <div class="qr-banner-left">
+        <div class="qr-banner-icon">🖨️</div>
+        <div>
+          <div class="qr-banner-title">On-Campus Physical QR Code Placards</div>
+          <div class="qr-banner-desc">Print ready-to-mount high-contrast QR placards for all 26 campus departments, entrances, and labs.</div>
+        </div>
+      </div>
+      <a href="qr-codes.html" class="qr-banner-btn" id="btnQRCodes">
+        View &amp; Print QR Codes &rarr;
+      </a>
+    </div>
+
+    <!-- Quick Location Chips Preview -->
+    <div class="locations-preview-box">
+      <div class="preview-header">
+        <div class="preview-title">
+          <span>🏛️</span> Popular Campus Destinations
+        </div>
+        <a href="tour.html?mode=explore" style="font-size:12.5px; color:var(--sit-gold-hover); font-weight:700; text-decoration:none;">
+          View All 26 &rarr;
+        </a>
+      </div>
+      <div class="preview-chips">
+        <a class="loc-chip highlight" href="tour.html?mode=navigate&start=0-entrance-gate-1">🚪 Entrance Gate 1</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=1-entrance-gate-2">🚪 Entrance Gate 2</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=5-engineering-main-entrance-1">🏛️ Engineering Main Entrance</a>
+        <a class="loc-chip highlight" href="tour.html?mode=navigate&start=8-principal_cabin">👔 Principal's Cabin</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=14-cse_lab">💻 CSE Computer Lab</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=13-physics_lab">🔬 Physics Lab</a>
+        <a class="loc-chip highlight" href="tour.html?mode=navigate&start=25-auditorium">🎭 Auditorium</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=3-temple">🛕 Campus Temple</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=2-garden-view-">🌳 Garden View</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=20-aids_out">🤖 AI &amp; Data Science</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=24-csbs_out">📈 CSBS Department</a>
+        <a class="loc-chip" href="tour.html?mode=navigate&start=23-wrkube">🚀 WRKube Innovation Center</a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- College Institutional Footer -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="footer-title">SRINIVAS INSTITUTE OF TECHNOLOGY</div>
+        <div class="footer-subtitle">Srinivas Group of Colleges · A Unit of A. Shama Rao Foundation</div>
+        <div class="footer-address" style="margin-top:6px;">
+          Valachil, Merlapadavu, Mangalore – 574143, Karnataka, India.<br>
+          Affiliated to Visvesvaraya Technological University (VTU), Belagavi &amp; Approved by AICTE, New Delhi.
+        </div>
+      </div>
+      <div>
+        <div style="font-weight:700; color:#ffffff; margin-bottom:6px;">Emergency &amp; Enquiries:</div>
+        <div style="font-size:12px; line-height:1.7;">
+          Admission Helpline: +91 7026436197 / +91 6366410494<br>
+          Office: 0824 2274730 / 0824 2274732<br>
+          Email: principalsit@srinivasgroup.com
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>NavSri Campus Navigator &copy; Srinivas Institute of Technology. All Rights Reserved.</div>
+      <div>Designed with High-Performance Client-Side Architecture (WebGL &amp; BFS)</div>
+    </div>
+  </footer>
 
 </body>
 </html>
